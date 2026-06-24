@@ -1,0 +1,27 @@
+# Maven Build Artifacts
+target/
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Eclipse IDE files
+.settings/
+.classpath
+.project
+.metadata/
+.recommenders/
+tmp0/
+wtpwebapps/
+
+# Compiled Java files
+*.class
+
+# Log files
+*.log
+
+# System files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
