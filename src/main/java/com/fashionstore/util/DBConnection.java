@@ -30,7 +30,8 @@ public class DBConnection {
         if (envDb == null) envDb = "fashionstore";
         
         if (envHost != null && envUser != null) {
-            dbUrl = "jdbc:mysql://" + envHost + ":" + envPort + "/" + envDb + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+            boolean useSSL = envHost.endsWith(".aivencloud.com") || "true".equalsIgnoreCase(System.getenv("DB_SSL"));
+            dbUrl = "jdbc:mysql://" + envHost + ":" + envPort + "/" + envDb + "?useSSL=" + useSSL + "&allowPublicKeyRetrieval=true&serverTimezone=UTC";
             dbUser = envUser;
             dbPassword = envPassword != null ? envPassword : "";
         } else {
