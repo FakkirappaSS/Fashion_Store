@@ -1,14 +1,13 @@
 package com.fashionstore.util;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class DBConnection {
-    // Database connection details determined dynamically
-    private static final String dbUrl;
-    private static final String dbUser;
-    private static final String dbPassword;
+    // Database connection datasource managed by HikariCP connection pool
+    private static final HikariDataSource dataSource;
     
     static {
         // Read environment variables for cloud deployment (e.g. Render/Railway)
@@ -29,31 +28,42 @@ public class DBConnection {
         if (envDb == null) envDb = System.getenv("DB_NAME");
         if (envDb == null) envDb = "fashionstore";
         
+        String jdbcUrl;
+        String username;
+        String password;
+        
         if (envHost != null && envUser != null) {
             boolean useSSL = envHost.endsWith(".aivencloud.com") || "true".equalsIgnoreCase(System.getenv("DB_SSL"));
-            dbUrl = "jdbc:mysql://" + envHost + ":" + envPort + "/" + envDb + "?useSSL=" + useSSL + "&allowPublicKeyRetrieval=true&serverTimezone=UTC";
-            dbUser = envUser;
-            dbPassword = envPassword != null ? envPassword : "";
+            jdbcUrl = "jdbc:mysql://" + envHost + ":" + envPort + "/" + envDb + "?useSSL=" + useSSL + "&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+            username = envUser;
+            password = envPassword != null ? envPassword : "";
         } else {
             // Local fallback
-            dbUrl = "jdbc:mysql://localhost:3306/fashionstore?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
-            dbUser = "root";
-            dbPassword = "root";
+            jdbcUrl = "jdbc:mysql://localhost:3306/fashionstore?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+            username = "root";
+            password = "root";
         }
+        
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(jdbcUrl);
+        config.setUsername(username);
+        config.setPassword(password);
+        config.setDriverClassName("com.mysql.cj.jdbc.Driver");
+        
+        // Optimize Connection Pool Settings for Render Free Tier / Aiven
+        config.setMaximumPoolSize(10);
+        config.setMinimumIdle(2);
+        config.setIdleTimeout(30000);
+        config.setConnectionTimeout(20000);
+        config.setMaxLifetime(1800000);
+        
+        dataSource = new HikariDataSource(config);
     }
     
     // Singleton instance
     private static DBConnection instance;
     
-    private DBConnection() {
-        try {
-            // Load the MySQL JDBC driver
-            Class.forName("com.mysql.cj.jdbc.Driver");
-        } catch (ClassNotFoundException e) {
-            System.err.println("MySQL Driver not found.");
-            e.printStackTrace();
-        }
-    }
+    private DBConnection() {}
     
     // Thread-safe Singleton
     public static DBConnection getInstance() {
@@ -68,6 +78,6 @@ public class DBConnection {
     }
     
     public Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(dbUrl, dbUser, dbPassword);
+        return dataSource.getConnection();
     }
 }
